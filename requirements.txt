@@ -1,0 +1,9 @@
+nltk
+pymystem3
+pymorphy2
+seaborn
+matplotlib
+sklearn
+pandas
+telebot
+pyTelegramBotAPI
