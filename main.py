@@ -5,7 +5,7 @@ import io
 import matplotlib.pyplot as plt
 import traceback
 
-TOKEN='6742100930:AAFWmK2R_8StqyA3QmHZpsQFwG4kwbwDam8'
+TOKEN='7048581197:AAG6KCjSWBbpyqhA-ZOgnnXkuR_FG3DyCPU'
 bot = telebot.TeleBot(TOKEN)
 
 def exit(exitCode):
