@@ -240,7 +240,6 @@ def plot_all_graphs(fig, axs, id):
     # Вызовите остальные функции и передайте им соответствующий объект ax
     plot_dirty(tdf, axs[0, 1])
     plot_pos(tdf, axs[1, 0])
-    
     plot_top_names(tdf, axs[1, 1])
     #fig.tight_layout()
     
