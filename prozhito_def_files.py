@@ -5,8 +5,11 @@ from nltk import punkt
 from nltk import *
 from pymystem3 import Mystem
 from nltk.corpus import stopwords
+nltk.download('stopwords')
+from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 import pymorphy2
+
 import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.feature_extraction.text import CountVectorizer
@@ -18,6 +21,9 @@ stop_words = set(stopwords.words('russian'))
 dp=pd.read_csv('source/persons_daries.csv', sep=',' , low_memory=False)
 sns.color_palette("tab10")
 sns.set(style="whitegrid")
+
+morph = pymorphy2.MorphAnalyzer()
+m = Mystem(disambiguation=False)
 
 def extract_by_id(id,data):
     try:
@@ -62,9 +68,29 @@ def plot_dirty(tdf, ax):
     ax.set_title('TОП СЛОВ БЕЗ ЧИСТКИ')
     return plot_dirty
 
-def plot_clean(tdf, ax):
+def lemmatize(wrds, m):
+    res = []
+    for wrd in wrds:
+        p = m.parse(wrd)[0]
+        res.append(p.normal_form)
+        
+    return res
+
+def tokenize(text, stoplst):
+    without_stop_words = []
+    txxxt = nltk.word_tokenize(text)
+    for word in txxxt:
+        if len(word) == 1:
+            continue
+        if word.lower() not in stoplst:
+            without_stop_words.append(word)
+    return without_stop_words
+
+
+def plot_clean(tdf,stop_words, ax):
     text = str(tdf['text'].values)#.astype('str')
     tokens = word_tokenize(text)
+    tokens = lemmatize(tokens, morph)
     filtered_tokens = [word for word in tokens if word not in stop_words]
 
     count_vect_total = CountVectorizer(ngram_range=(1,2),min_df=5)
@@ -88,26 +114,18 @@ def plot_clean(tdf, ax):
                     
     return plot_clean
 
-def lemmatize(wrds, m):
-    res = []
-    for wrd in wrds:
-        p = m.parse(wrd)[0]
-        res.append(p.normal_form)
-        
-    return res
 
-def tokenize(text, stoplst):
-    without_stop_words = []
-    txxxt = nltk.word_tokenize(text)
-    for word in txxxt:
-        if len(word) == 1:
-            continue
-        if word.lower() not in stoplst:
-            without_stop_words.append(word)
-    return without_stop_words
+def uniq_words_share(tdf,stoplst):
+    txt = str(tdf['text'].values)
+    tokenized_text = tokenize(txt, stop_words)
+    tokens = lemmatize(tokenized_text, morph)
+    words = len(tokens)
+    uniq_words = len(set(tokens))
+    return (uniq_words/words) * 100
 
 
-def process_and_visualize(stop_words, tdf, ax):
+
+def process_and_visualize(stop_words, tdf):
     text = str(tdf['text'].values)
     
     def pre_process(text):
@@ -120,7 +138,6 @@ def process_and_visualize(stop_words, tdf, ax):
         sub_str = 'sfgff'
         text = text[:text.find(sub_str)]
         return text
-        
 
     morph = pymorphy2.MorphAnalyzer()
 
@@ -130,35 +147,29 @@ def process_and_visualize(stop_words, tdf, ax):
 
     Fdist = FreqDist(lemmatized_text)
 
-    #top = Fdist.plot(20, cumulative=False)
-
     not_most_common = Fdist.most_common()[-21:-1]
-    #plt.title("---Топ редких слов:---")
-    not_most_common = pd.DataFrame(not_most_common)
-    not_most_common.plot(x=0, y=1, ax=ax, rot=0, kind='barh', legend=False).set_title('TОП РЕДКИХ СЛОВ')
+    rare_words = [i[0] for i in not_most_common]
+
     
 
-    return not_most_common
+    return ', '.join(str(w) for w in rare_words)
 
 
-# top pos:
+
+
 def plot_pos(tdf, ax):
-    m = Mystem(disambiguation=False)
     pos_counter_bk = Counter()
-    text = str(tdf['text'].values)#text = ' '.join(str(sent) for sent in tdf[0].values)
+    bk = str(tdf['text'].values)
 
-    for sentence in sent_tokenize(text, language="russian"): 
-        print
-        doc = m.analyze(sentence)
+    for sentence in sent_tokenize(bk, language="russian"):
+        doc = m.analyze(sentence) 
         for word in doc: 
-            if "analysis" not in word or len(word["analysis"]) == 0: 
-                continue
+                if "analysis" not in word or len(word["analysis"]) == 0: 
+                    continue
 
-            gr = word["analysis"][0]['gr']
-            pos = gr.split("=")[0].split(",")[0]
-            pos_counter_bk[pos] += 1 
-            #if pos == 'V':  # Filter for verbs only
-            #    pos_counter_bk[pos] += 1 
+                gr = word["analysis"][0]['gr']
+                pos = gr.split("=")[0].split(",")[0]
+                pos_counter_bk[pos] += 1 
 
     pos_tags = []
     counts = []
@@ -167,11 +178,13 @@ def plot_pos(tdf, ax):
         pos_tags.append(pos)
         counts.append(count)
 
-    bk_plt = ax.bar(pos_tags, counts, )
-    ax.set_title('TОП ЧАСТЕЙ РЕЧИ')
+    percents = [count / sum(counts) * 100 for count in counts]
+    bk_plt = ax.bar(pos_tags, percents, )
+    ax.set_title('TОП ЧАСТЕЙ РЕЧИ в %')
     plt.xticks(rotation=30)
     
     return bk_plt
+
   
 
 
@@ -194,6 +207,7 @@ def plot_top_names(tdf, ax):
     Fdist = FreqDist(is_name)
 
     df = pd.DataFrame(list(Fdist.items()), columns=['Name', 'Count']).sort_values(by = 'Count',ascending=False)
+    df = df.head(20)
 
     top_names_plot = sns.barplot(x="Count",
                              y="Name",
@@ -206,6 +220,7 @@ def plot_top_names(tdf, ax):
 
 
 
+
 def plot_all_graphs(fig, axs, id):
     ### apply:
     tdf = extract_by_id(id,dp)
@@ -214,14 +229,19 @@ def plot_all_graphs(fig, axs, id):
             return None, None
     
 
-    messages=[f'Обработано записей: {len(tdf)}', f"Среднее кол-во слов в предложении ~ {len_sent(tdf)}"]
+    messages=messages = [f'Обработано постов блога: {len(tdf)}', 
+                         f"Среднее кол-во слов в предложении ~ {len_sent(tdf)},",
+                         f"Доля уникальных слов составляет ~ {round(uniq_words_share(tdf,stop_words))}%",
+                         f"Список 20-ти редко встречающихся слов: {process_and_visualize(stop_words, tdf)}"]
+
+
 
     plot_clean(tdf, axs[0, 0])
     # Вызовите остальные функции и передайте им соответствующий объект ax
     plot_dirty(tdf, axs[0, 1])
     plot_pos(tdf, axs[1, 0])
-    process_and_visualize(stop_words, tdf, axs[1, 1])
-    plot_top_names(tdf, axs[2, 0])
+    
+    plot_top_names(tdf, axs[1, 1])
     #fig.tight_layout()
     
     return fig, messages
@@ -229,6 +249,6 @@ def plot_all_graphs(fig, axs, id):
 
 if __name__ == '__main__':
     id='2525'
-    fig, axs = plt.subplots(nrows=3, ncols=2, figsize=(18.5, 14), layout="constrained")
+    fig, axs = plt.subplots(nrows=2, ncols=2, figsize=(18.5, 14), layout="constrained")
     fig, messages = plot_all_graphs(fig, axs, id)
     plt.savefig('prozhito.png')
