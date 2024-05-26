@@ -236,7 +236,7 @@ def plot_all_graphs(fig, axs, id):
 
 
 
-    plot_clean(tdf, axs[0, 0])
+    plot_clean(tdf,stop_words, axs[0, 0])
     # Вызовите остальные функции и передайте им соответствующий объект ax
     plot_dirty(tdf, axs[0, 1])
     plot_pos(tdf, axs[1, 0])
