@@ -64,7 +64,7 @@ def step_1(message):
             try:
                 bot.send_message(message.chat.id, 'Ищу')
                 
-                fig, axs = plt.subplots(nrows=3, ncols=2, figsize=(18.5, 14), layout="constrained")
+                fig, axs = plt.subplots(nrows=2, ncols=2, figsize=(18.5, 14), layout="constrained")
                 
                 fig, messages = plot_all_graphs(fig , axs, message.text)
                 
