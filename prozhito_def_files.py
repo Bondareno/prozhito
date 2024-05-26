@@ -229,7 +229,7 @@ def plot_all_graphs(fig, axs, id):
             return None, None
     
 
-    messages=messages = [f'Обработано постов блога: {len(tdf)}', 
+    messages=messages = [f'Обработано записей дневника: {len(tdf)}', 
                          f"Среднее кол-во слов в предложении ~ {len_sent(tdf)},",
                          f"Доля уникальных слов составляет ~ {round(uniq_words_share(tdf,stop_words))}%",
                          f"Список 20-ти редко встречающихся слов: {process_and_visualize(stop_words, tdf)}"]
